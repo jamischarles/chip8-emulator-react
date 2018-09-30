@@ -50,6 +50,19 @@ body {
   margin-top: 30px;
 }
 
+.memory-access-container {
+  margin-top: 30px;
+}
+
+.memory-access-digits {
+  display: grid;
+  grid: auto-flow 21px / repeat(10, 31px);
+}
+
+.memory-access-digits .mem-active {
+  border: 2px solid red;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

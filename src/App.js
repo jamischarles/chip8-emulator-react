@@ -11,6 +11,8 @@ class Emulator extends Component {
     this.state = {
       lastOpcode: '',
       prettyOpcode: '',
+      memory: [],
+      lastPC: '', // program counter (for debugging)
     };
 
     this.setGlobalState = this.setGlobalState.bind(this);
@@ -35,6 +37,10 @@ class Emulator extends Component {
             prettyOpcode={this.state.prettyOpcode}
             lastOpcode={this.state.lastOpcode}
           />
+        </div>
+
+        <div className="memory-access-container">
+          <MemoryAccess memory={this.state.memory} pc={this.state.lastPC} />
         </div>
       </div>
     );
@@ -74,16 +80,16 @@ class Game extends Component {
     };
 
     // FIXME: move to emulator?
-    this.memory = [];
+    var memory = [];
 
     // For debugging, allow us to notify state changes in UI
     var handler = {
       get(target, key) {
-        console.info(`Get on property "${key}"`);
+        // console.info(`Get on property "${key}"`);
         return target[key];
       },
       set(target, key, value) {
-        console.info(`Set on property "${key}"`);
+        // console.info(`Set on property "${key}"`);
 
         // notify parent if prettyOpCode is updated
         if (key === 'prettyOpcode') {
@@ -95,7 +101,20 @@ class Game extends Component {
       },
     };
 
+    var memHandler = {
+      set(target, key, value) {
+        console.info(`Set on MEMORY i: "${key}: ${value}"`);
+
+        target[key] = value;
+        // notify parent if prettyOpCode is updated
+        props.setGlobalState({memory: target});
+
+        return true;
+      },
+    };
+
     this.emState = new Proxy(emState, handler);
+    this.memory = new Proxy(memory, memHandler);
 
     // for debugging, allow parent to run loop once
     this.playOneFrame = this.playOneFrame.bind(this);
@@ -125,6 +144,8 @@ class Game extends Component {
     for (var i = 0; i < pong.length; ++i) {
       this.memory[i + 512] = pong[i];
     }
+
+    this.props.setGlobalState({memory: this.memory});
   }
 
   // FIXME: use setState instead...
@@ -132,7 +153,10 @@ class Game extends Component {
     var opcode =
       (this.memory[this.emState.pc] << 8) | this.memory[this.emState.pc + 1];
 
-    this.props.setGlobalState({lastOpcode: opcode.toString(16)});
+    this.props.setGlobalState({
+      lastPC: this.emState.pc,
+      lastOpcode: opcode.toString(16),
+    });
     execOpcode(opcode, this.emState, this.setState.bind(this), this.memory);
 
     // Update timers
@@ -240,6 +264,58 @@ RET - Return from a subroutine.
         <pre>{legend}</pre>
         <br />
         <button onClick={global.playOneFrame}>Play one frame</button>
+      </div>
+    );
+  }
+}
+
+class MemoryAccess extends Component {
+  constructor() {
+    super();
+    this.state = {
+      hideNull: true,
+    };
+  }
+  render() {
+    // last program counter. Curren one in state will be the pc for the next instruction...
+    var {pc} = this.props;
+    var mem = [];
+
+    for (var i = 0; i < this.props.memory.length; i++) {
+      var hex;
+      var item = this.props.memory[i];
+
+      if (typeof item === 'undefined') {
+        hex = 'null';
+      } else {
+        hex = item.toString(16).padStart(2, '0');
+      }
+
+      // gross. Improve this?!?
+      if ((this.state.hideNull && hex === 'null') || i < 512) {
+        // Removes everything that 's null and non-grogram code before 0x200 (512)
+      } else {
+        if (pc === i || pc + 1 === i) {
+          mem.push(<span class="mem-active">{hex},</span>);
+        } else {
+          mem.push(<span>{hex},</span>);
+        }
+      }
+    }
+
+    // var mem = this.props.memory.map((item, i) => {
+    //   if (!item) {
+    //     console.log('item null', i);
+    //   }
+    //   // turn into hex, and zero-pad
+    //   return <span>{item.toString(16).padStart(2, '0')},</span>;
+    // });
+
+    return (
+      <div>
+        memoryAccess: <b>{pc}</b>
+        <br />
+        <div className="memory-access-digits">{mem}</div>
       </div>
     );
   }
