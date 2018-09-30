@@ -2,22 +2,48 @@ import React, {Component} from 'react';
 // import logo from './logo.svg';
 import './App.css';
 import {execOpcode} from './opcodes';
-import {pong, chip8_fontset} from './games/pong';
+import {blinky, pong, chip8_fontset} from './games/pong';
 
 // this will include all the panels, the debugging and the whole page...
 class Emulator extends Component {
+  constructor() {
+    super();
+    this.state = {
+      lastOpcode: '',
+      prettyOpcode: '',
+    };
+
+    this.setGlobalState = this.setGlobalState.bind(this);
+
+    // global obj we pass down so child can attach fns that parent can call...
+    // FIXME: Feels dirty... Would redux or similar help here?
+    // FIXME: should CPU cycle be moved up here? Maybe it should...
+    // Get it working first, then we can always clean it up...
+    this.global = {};
+  }
+  setGlobalState(newState) {
+    this.setState(newState);
+  }
   render() {
     return (
       <div className="App">
-        <Game />
+        <Game global={this.global} setGlobalState={this.setGlobalState} />
+
+        <div className="timescrubber-container">
+          <TimeScrubber
+            global={this.global}
+            prettyOpcode={this.state.prettyOpcode}
+            lastOpcode={this.state.lastOpcode}
+          />
+        </div>
       </div>
     );
   }
 }
 
 class Game extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     // FIXME: is this really emlator state? Consider moving this up a level...
     // Consider moving memory into state...
     // FIXME: Consider moving this out of state, because we don't want to redraw
@@ -25,7 +51,7 @@ class Game extends Component {
     // And that allows us to not worry about it being setState...
     // then we can also observe which one has been updated... just pass our own manual setState fn...
     // FIXME: just keep mutating state the way we are... for now...
-    this.emState = {
+    var emState = {
       V: new Array(0xf).fill(0), // 16 length array. Zero filled
       I: 0,
       pc: 0x200, // Program counter starts at 0x200 (512) in memory
@@ -41,11 +67,39 @@ class Game extends Component {
       // FIXME: add this to emulator? Or should it be here?
       // Should I draw to the screen? Basically shouldScreenUpdate
       drawFlag: false,
-      isPaused: false, // for game, but also for debugging
+      isPaused: true, // for game, but also for debugging
+
+      // for debugging only...
+      prettyOpcode: '',
     };
 
     // FIXME: move to emulator?
     this.memory = [];
+
+    // For debugging, allow us to notify state changes in UI
+    var handler = {
+      get(target, key) {
+        console.info(`Get on property "${key}"`);
+        return target[key];
+      },
+      set(target, key, value) {
+        console.info(`Set on property "${key}"`);
+
+        // notify parent if prettyOpCode is updated
+        if (key === 'prettyOpcode') {
+          props.setGlobalState({prettyOpcode: value});
+        }
+
+        target[key] = value;
+        return true;
+      },
+    };
+
+    this.emState = new Proxy(emState, handler);
+
+    // for debugging, allow parent to run loop once
+    this.playOneFrame = this.playOneFrame.bind(this);
+    props.global.playOneFrame = this.playOneFrame;
   }
 
   // set up the game state.
@@ -53,6 +107,10 @@ class Game extends Component {
     // load game
     this.loadGame(); // FIXME: pass in what game
     // start CPU loop
+    this.cpuLoop();
+  }
+
+  playOneFrame() {
     this.cpuLoop();
   }
 
@@ -74,6 +132,7 @@ class Game extends Component {
     var opcode =
       (this.memory[this.emState.pc] << 8) | this.memory[this.emState.pc + 1];
 
+    this.props.setGlobalState({lastOpcode: opcode.toString(16)});
     execOpcode(opcode, this.emState, this.setState.bind(this), this.memory);
 
     // Update timers
@@ -152,6 +211,39 @@ class GameCanvas extends Component {
 
 // components for other parts of the page
 // scrubber, codesurfer
+//
+//
+class TimeScrubber extends Component {
+  constructor() {
+    super();
+    // TODO: make these props?
+    this.state = {
+      lastOpcode: '',
+      prettyCode: '',
+    };
+  }
+  render() {
+    var {global, lastOpcode, prettyOpcode} = this.props;
+    var legend = `
+LD - Load instruction into a register
+DRW - DRAW Vx, Vy, nibble. Fill state.screen[]. Set state.drawFlag.
+CALL - CALL subroutine at nnn (2nnn).
+RET - Return from a subroutine.
+      `;
+    return (
+      <div>
+        {lastOpcode}
+        <br />
+        {prettyOpcode}
+        <br />
+
+        <pre>{legend}</pre>
+        <br />
+        <button onClick={global.playOneFrame}>Play one frame</button>
+      </div>
+    );
+  }
+}
 
 export default Emulator;
 

@@ -27,14 +27,18 @@ export function execOpcode(opcode, state, setState, memory) {
 
   // FIXME: Write something better for this cascade...
   // FIXME: Specificity here could break us, because the specificity could vary here. We have to be careful about the order...
-  if (third) third(opcode, state, setState, memory);
-  else if (first) first(opcode, state, setState, memory);
-  else if (second) second(opcode, state, setState, memory);
-  else if (fourth) fourth(opcode, state, setState, memory);
+  var prettyName;
+  if (third) prettyName = third(opcode, state, setState, memory);
+  else if (first) prettyName = first(opcode, state, setState, memory);
+  else if (second) prettyName = second(opcode, state, setState, memory);
+  else if (fourth) prettyName = fourth(opcode, state, setState, memory);
   else {
     console.log('### Unknown opcode: 0x%s\n', opcode.toString(16));
     debugger;
   }
+
+  // for debugging / visualization purposes
+  state.prettyOpcode = prettyName;
 }
 
 var codes = {
@@ -49,6 +53,8 @@ var codes = {
     // SAME AS
     // this.i = opcode & 0xFFF; // this keeps the last 3 hex values
     state.pc += 2;
+
+    return 'LD I';
   },
 
   0xb000: function(opcode, state, setState) {
@@ -96,6 +102,8 @@ var codes = {
     }
     // skip next instruction (+4 to get to the instruction after, since the next instruction is at +2)
     state.pc += 2;
+
+    return 'SKNP Vx -  Skip next instruction if key with the value of Vx is not pressed.';
   },
 
   0xe09e: function(opcode, state, setState) {
@@ -125,6 +133,8 @@ var codes = {
 
     // console.log('nnn', nnn)
     state.pc = parseInt(nnn, 16);
+
+    return 'JP addr - Jump to location nnn.';
   },
   0x2000: function(opcode, state, setState) {
     // CALL subroutine at nnn.
@@ -137,6 +147,7 @@ var codes = {
 
     state.pc = parseInt(hexCode.slice(1), 16); // FIXME: should this be base16? YES, because the source format is Base 16 (hex)
     //vs state.pc = opcode & 0x0FFF;
+    return 'CALL';
   },
   0x3000: function(opcode, state, setState) {
     // 3xnn Skip next instruction if Vx = nn.
@@ -151,6 +162,8 @@ var codes = {
     }
 
     state.pc += 2;
+
+    return 'SE Vx, byte -  Skip next instruction if Vx = kk.';
   },
 
   0x4000: function(opcode, state, setState) {
@@ -167,6 +180,8 @@ var codes = {
     }
 
     state.pc += 2;
+
+    return 'SNE Vx, byte - Skip next instruction if Vx != kk.';
   },
 
   0x5000: function(opcode, state, setState) {
@@ -193,6 +208,8 @@ var codes = {
     state.V[x] = parseInt(nn, 16);
 
     state.pc += 2;
+
+    return 'LD Vx';
   },
   0x7000: function(opcode, state, setState) {
     // 7XNN Set Vx = Vx + nn.
@@ -211,7 +228,7 @@ var codes = {
     state.V[x] = val;
 
     state.pc += 2;
-    return;
+    return 'ADD Vx, byte - Adds the value kk to the value of register Vx, then stores the result in Vx. ';
 
     var hexCode = opcode.toString(16); // convert opcode to hex value
     var x = parseInt(hexCode[1], 16); // 0x6411 -> x = 4, nn = 11;
@@ -412,6 +429,7 @@ var codes = {
   0xd000: function(opcode, state, setState, memory) {
     // Dxyn - drawing graphic pixels. ie: 0xdab6
     // Every sprite will be 8 pixels wide, and N pixels tall...
+    // debugger;
     state.V[0xf] = 0;
     var hexCode = opcode.toString(16); // convert opcode to hex value
     var x = parseInt(hexCode[1], 16); // a
@@ -426,7 +444,7 @@ var codes = {
       spr = memory[state.I + y];
       for (x = 0; x < 8; x++) {
         if ((spr & 0x80) > 0) {
-          if (setPixel(registerX + x, registerY + y, state.screen)) {
+          if (setPixel(registerY + y, registerX + x, state.screen)) {
             state.V[0xf] = 1;
           }
         }
@@ -438,7 +456,7 @@ var codes = {
 
     state.pc += 2;
 
-    return;
+    return 'DRW';
 
     var hexCode = opcode.toString(16); // convert opcode to hex value
     var x = parseInt(hexCode[1], 16); // a
@@ -561,6 +579,8 @@ var codes = {
     state.V[x] = state.delayTimer;
 
     state.pc += 2;
+
+    return 'LD Vx, DT - Set Vx = delay timer value.';
   },
   0xf00a: function(opcode, state, setState) {
     // Fx0A. Wait for keypress. Resume/start CPU Cycle when keypress happens.
@@ -577,6 +597,8 @@ var codes = {
     state.delayTimer = state.V[x];
 
     state.pc += 2;
+
+    return 'LD DT, Vx - Set delay timer = Vx.';
   },
   0xf018: function(opcode, state, setState) {
     // Fx18. Set the sound timer to the value of register VX
@@ -612,6 +634,12 @@ var codes = {
     state.I = vx * 5;
 
     state.pc += 2;
+
+    return `
+    LD F, Vx
+    Set I = location of sprite for digit Vx.
+
+The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx.`;
   },
 
   0xf033: function(opcode, state, setState, memory) {
@@ -647,6 +675,8 @@ var codes = {
     }
 
     state.pc += 2;
+
+    return 'LD Vx->mem';
   },
   0xf055: function(opcode, state, setState, memory) {
     // Store registers V0 through Vx in memory starting at location I.
@@ -680,6 +710,8 @@ var codes = {
 
     state.I = state.I + x + 1;
     state.pc += 2;
+
+    return 'LD Vx, [I]';
   },
   /****************************
    ** Third Ranges
@@ -716,6 +748,7 @@ var codes = {
     //
     // to the same point and then run that exact same code again
     // state.loopCount = 300;
+    return 'RET - Return from a subroutine';
   },
 };
 
