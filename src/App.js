@@ -4,6 +4,9 @@ import './App.css';
 import {execOpcode} from './opcodes';
 import {invaders, blinky, pong, chip8_fontset} from './games/pong';
 
+// FIXME: gross
+var drawAttemptCount = 0;
+
 // this will include all the panels, the debugging and the whole page...
 class Emulator extends Component {
   constructor() {
@@ -251,16 +254,34 @@ class Game extends Component {
     if (this.emState.isPaused) return;
 
     if (this.emState.drawFlag) {
+      // might not be needed? Helps us go super duper speed by skipping draw attempts
+      // this.emState.drawFlag = false;
+
+      drawAttemptCount++;
+
+      // We can use this method to adjust clock speed...
+      if (drawAttemptCount < 1) {
+        return this.cpuLoop();
+      }
+
       // FIXME: change this value
       this.emState.drawFlag = false;
 
-      // window.requestAnimationFrame(this.cpuLoop.bind(this));
-
-      setTimeout(() => {
+      // FIXME: try to skip every other one...
+      window.requestAnimationFrame(() => {
         this.setState({drawFlag: false}, () => {
           this.cpuLoop();
+          drawAttemptCount = 0; // when we actually draw, reset to zero
         });
-      }, 0);
+      });
+
+      //   this.cpuLoop.bind(this));
+      //
+      // setTimeout(() => {
+      //   this.setState({drawFlag: false}, () => {
+      //     this.cpuLoop();
+      //   });
+      // }, 0);
     } else {
       // setTimeout(() => {
       // slower with RAF than without
