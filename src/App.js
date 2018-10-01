@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 // import logo from './logo.svg';
 import './App.css';
 import {execOpcode} from './opcodes';
-import {blinky, pong, chip8_fontset} from './games/pong';
+import {invaders, blinky, pong, chip8_fontset} from './games/pong';
 
 // this will include all the panels, the debugging and the whole page...
 class Emulator extends Component {
@@ -157,9 +157,35 @@ class Game extends Component {
     this.emState = new Proxy(emState, handler);
     this.memory = new Proxy(memory, memHandler);
 
+    this.handleKeyPress = this.handleKeyPress.bind(this);
+    this.resetKeys = this.resetKeys.bind(this);
+
     // for debugging, allow parent to run loop once
     this.playOneFrame = this.playOneFrame.bind(this);
     props.global.playOneFrame = this.playOneFrame;
+  }
+
+  // reset keys so we they don't stick!
+  // FIXME: this will be a little buggy. We shouldn't reset all the keys
+  resetKeys() {
+    this.emState.keys = new Array(16).fill(0); // 16 length. 0 means off (hasn't been pressed)
+  }
+
+  // listen for 15 keys
+  handleKeyPress(e) {
+    var keyPressed = e.key;
+    // debugger;
+    // prettier-ignore
+    var keyMap= [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'q', 'w', 'e', 'r', 't', 'z'];
+
+    // return;
+    //
+    var pos = keyMap.indexOf(keyPressed);
+
+    if (pos != -1) {
+      this.emState.keys[pos] = 1;
+    }
   }
 
   // set up the game state.
@@ -168,6 +194,9 @@ class Game extends Component {
     this.loadGame(); // FIXME: pass in what game
     // start CPU loop
     this.cpuLoop();
+
+    document.addEventListener('keydown', this.handleKeyPress, false);
+    document.addEventListener('keyup', this.resetKeys, false);
   }
 
   playOneFrame() {
@@ -242,7 +271,12 @@ class Game extends Component {
   }
 
   render() {
-    return <GameCanvas screen={this.emState.screen} />;
+    return (
+      <GameCanvas
+        onKeyDown={this.handleKeyPress}
+        screen={this.emState.screen}
+      />
+    );
   }
 }
 
