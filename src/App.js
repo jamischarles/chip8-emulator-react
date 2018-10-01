@@ -124,12 +124,12 @@ class Game extends Component {
 
         // notify parent if prettyOpCode is updated
         if (key === 'prettyOpcode') {
-          props.setGlobalState({prettyOpcode: value});
+          // props.setGlobalState({prettyOpcode: value});
         }
 
         if (key != 'prettyOpcode' && key != 'pc') {
           // last state updated. NOT prettyOpcode
-          props.global.notifyStatePropUpdate(key);
+          // props.global.notifyStatePropUpdate(key);
         }
 
         target[key] = value;
@@ -143,7 +143,7 @@ class Game extends Component {
 
         target[key] = value;
         // notify parent if prettyOpCode is updated
-        props.setGlobalState({memory: target});
+        // props.setGlobalState({memory: target});
 
         return true;
       },
@@ -186,7 +186,7 @@ class Game extends Component {
       this.memory[i + 512] = pong[i];
     }
 
-    this.props.setGlobalState({memory: this.memory});
+    // this.props.setGlobalState({memory: this.memory});
   }
 
   // FIXME: use setState instead...
@@ -194,10 +194,10 @@ class Game extends Component {
     var opcode =
       (this.memory[this.emState.pc] << 8) | this.memory[this.emState.pc + 1];
 
-    this.props.setGlobalState({
-      lastPC: this.emState.pc,
-      lastOpcode: opcode.toString(16),
-    });
+    // this.props.setGlobalState({
+    //   lastPC: this.emState.pc,
+    //   lastOpcode: opcode.toString(16),
+    // });
     execOpcode(opcode, this.emState, this.setState.bind(this), this.memory);
 
     // Update timers
@@ -224,13 +224,20 @@ class Game extends Component {
     if (this.emState.drawFlag) {
       // FIXME: change this value
       this.emState.drawFlag = false;
-      this.setState({drawFlag: false}, () => {
-        this.cpuLoop();
-      });
-    } else {
+
+      // window.requestAnimationFrame(this.cpuLoop.bind(this));
+
       setTimeout(() => {
-        this.cpuLoop();
+        this.setState({drawFlag: false}, () => {
+          this.cpuLoop();
+        });
       }, 0);
+    } else {
+      // setTimeout(() => {
+      // slower with RAF than without
+      // window.requestAnimationFrame(this.cpuLoop.bind(this));
+      this.cpuLoop();
+      // }, 0);
     }
   }
 
