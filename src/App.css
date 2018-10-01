@@ -43,7 +43,7 @@ body {
 
 .canvas-container {
   display: grid;
-  grid: repeat(32, 11px) / auto-flow 11px;
+  grid: auto-flow 11px / repeat(64, 11px);
 }
 
 .timescrubber-container {

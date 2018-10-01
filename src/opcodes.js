@@ -446,7 +446,7 @@ var codes = {
       spr = memory[state.I + y];
       for (x = 0; x < 8; x++) {
         if ((spr & 0x80) > 0) {
-          if (setPixel(registerY + y, registerX + x, state.screen)) {
+          if (setPixel(registerX + x, registerY + y, state.screen)) {
             state.V[0xf] = 1;
           }
         }
