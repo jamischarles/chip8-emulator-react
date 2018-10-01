@@ -86,6 +86,8 @@ var codes = {
     state.V[x] = Math.floor(Math.random() * 0xff) & (opcode & 0xff);
 
     state.pc += 2;
+
+    return 'RND Vx, byte - Set Vx = random byte AND kk.';
   },
 
   // Input  (key-press) handling)
@@ -614,11 +616,13 @@ var codes = {
     // Add the value stored in register VX to register I
     var hexCode = opcode.toString(16); // convert opcode to hex value
     var x = parseInt(hexCode[1], 16); //
-    debugger;
+    // debugger;
 
     state.I += state.V[x];
 
     state.pc += 2;
+
+    return 'ADD I, Vx - The values of I and Vx are added, and the results are stored in I.';
   },
   0xf029: function(opcode, state, setState) {
     // FX29 Set I to the memory address of the sprite data corresponding to the hexadecimal digit stored in register VX

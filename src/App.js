@@ -13,6 +13,9 @@ class Emulator extends Component {
       prettyOpcode: '',
       memory: [],
       lastPC: '', // program counter (for debugging)
+      lastStateUpdated: [], // so we can keep track of what state is being changed
+      // to speed things up
+      hideDebuggingTools: true,
     };
 
     this.setGlobalState = this.setGlobalState.bind(this);
@@ -21,12 +24,32 @@ class Emulator extends Component {
     // FIXME: Feels dirty... Would redux or similar help here?
     // FIXME: should CPU cycle be moved up here? Maybe it should...
     // Get it working first, then we can always clean it up...
-    this.global = {};
+    this.global = {
+      emState: {},
+      notifyStatePropUpdate: this.notifyStatePropUpdate.bind(this),
+    };
   }
+  // FIXME: this is WAY WAY WAY too complex... :|
+  notifyStatePropUpdate(item) {
+    this.setState({
+      // create new array and spread old one on top of it...
+      lastStateUpdated: [...this.state.lastStateUpdated, item],
+    });
+  }
+
   setGlobalState(newState) {
     this.setState(newState);
   }
+
   render() {
+    if (this.state.hideDebuggingTools) {
+      return (
+        <div className="App">
+          <Game global={this.global} setGlobalState={this.setGlobalState} />
+        </div>
+      );
+    }
+
     return (
       <div className="App">
         <Game global={this.global} setGlobalState={this.setGlobalState} />
@@ -41,6 +64,14 @@ class Emulator extends Component {
 
         <div className="memory-access-container">
           <MemoryAccess memory={this.state.memory} pc={this.state.lastPC} />
+        </div>
+
+        <div className="emu-state-container">
+          <EmuState
+            emState={this.global.emState}
+            lastUpdated={this.state.lastStateUpdated}
+            updatedBy={this.state.lastOpcode}
+          />
         </div>
       </div>
     );
@@ -65,7 +96,7 @@ class Game extends Component {
       // screen: new Array(32).fill(new Array(64).fill(0)), // 2048 items
       stack: [],
       sp: 0,
-      keys: [], // 16 length
+      keys: new Array(16).fill(0), // 16 length. 0 means off (hasn't been pressed)
 
       delayTimer: 0, // will decrement at a rate of 60hz
       soundTimer: 0, // system buzzer sounds whenever timer reaches zero
@@ -73,7 +104,7 @@ class Game extends Component {
       // FIXME: add this to emulator? Or should it be here?
       // Should I draw to the screen? Basically shouldScreenUpdate
       drawFlag: false,
-      isPaused: true, // for game, but also for debugging
+      isPaused: false, // for game, but also for debugging
 
       // for debugging only...
       prettyOpcode: '',
@@ -96,6 +127,11 @@ class Game extends Component {
           props.setGlobalState({prettyOpcode: value});
         }
 
+        if (key != 'prettyOpcode' && key != 'pc') {
+          // last state updated. NOT prettyOpcode
+          props.global.notifyStatePropUpdate(key);
+        }
+
         target[key] = value;
         return true;
       },
@@ -112,6 +148,11 @@ class Game extends Component {
         return true;
       },
     };
+
+    // point the local (non-proxy) emstate object at the global one
+    // this way we point at the same reference globally, and that access
+    // isn't observed. FIXME: move the state up already. This is so gross...
+    props.global.emState = emState;
 
     this.emState = new Proxy(emState, handler);
     this.memory = new Proxy(memory, memHandler);
@@ -296,7 +337,7 @@ class MemoryAccess extends Component {
         // Removes everything that 's null and non-grogram code before 0x200 (512)
       } else {
         if (pc === i || pc + 1 === i) {
-          mem.push(<span class="mem-active">{hex},</span>);
+          mem.push(<span className="mem-active">{hex},</span>);
         } else {
           mem.push(<span>{hex},</span>);
         }
@@ -313,9 +354,41 @@ class MemoryAccess extends Component {
 
     return (
       <div>
-        memoryAccess: <b>{pc}</b>
+        <b>memoryAccess</b>: <b>{pc}</b>
         <br />
         <div className="memory-access-digits">{mem}</div>
+      </div>
+    );
+  }
+}
+
+class EmuState extends Component {
+  render() {
+    var {emState, updatedBy, lastUpdated} = this.props;
+    // ponyfill a few so it isn't too long (like screen)
+    //
+    console.log('emState', emState);
+    var stateCopy = Object.assign({}, emState, {screen: []});
+    delete stateCopy.prettyOpcode;
+    var state = JSON.stringify(stateCopy);
+
+    var output = [];
+    for (var key in stateCopy) {
+      output.push(<span>{key}:</span>);
+
+      // if (lastUpdated.includes(key)) {
+      //   output.push(
+      //     <span className="active">{JSON.stringify(stateCopy[key])}</span>,
+      //   );
+      // } else {
+      output.push(<span>{JSON.stringify(stateCopy[key])}</span>);
+      // }
+    }
+
+    return (
+      <div>
+        <b>EmuState</b>: <br />
+        <div className="emu-state-output">{output}</div>
       </div>
     );
   }

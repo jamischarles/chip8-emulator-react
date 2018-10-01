@@ -51,6 +51,7 @@ body {
 }
 
 .memory-access-container {
+  float: left;
   margin-top: 30px;
 }
 
@@ -61,6 +62,20 @@ body {
 
 .memory-access-digits .mem-active {
   border: 2px solid red;
+}
+
+.emu-state-container {
+  float: right;
+  width: 350px;
+}
+
+.emu-state-output {
+  display: grid;
+  grid: auto-flow 21px / repeat(2, 111px);
+}
+
+.emu-state-output .active {
+  border: 1px solid red;
 }
 
 @keyframes App-logo-spin {
