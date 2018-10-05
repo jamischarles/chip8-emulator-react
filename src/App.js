@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 // import logo from './logo.svg';
 import './App.css';
 import {execOpcode} from './opcodes';
-import {invaders, blinky, pong, chip8_fontset} from './games/pong';
+import {ufo, invaders, blinky, pong, chip8_fontset} from './games/pong';
 
 // FIXME: gross
 var drawAttemptCount = 0;
@@ -18,7 +18,7 @@ class Emulator extends Component {
       lastPC: '', // program counter (for debugging)
       lastStateUpdated: [], // so we can keep track of what state is being changed
       // to speed things up
-      hideDebuggingTools: true,
+      hideDebuggingTools: false,
     };
 
     this.setGlobalState = this.setGlobalState.bind(this);
@@ -127,12 +127,12 @@ class Game extends Component {
 
         // notify parent if prettyOpCode is updated
         if (key === 'prettyOpcode') {
-          // props.setGlobalState({prettyOpcode: value});
+          props.setGlobalState({prettyOpcode: value});
         }
 
         if (key != 'prettyOpcode' && key != 'pc') {
           // last state updated. NOT prettyOpcode
-          // props.global.notifyStatePropUpdate(key);
+          props.global.notifyStatePropUpdate(key);
         }
 
         target[key] = value;
@@ -146,7 +146,7 @@ class Game extends Component {
 
         target[key] = value;
         // notify parent if prettyOpCode is updated
-        // props.setGlobalState({memory: target});
+        props.setGlobalState({memory: target});
 
         return true;
       },
@@ -203,8 +203,13 @@ class Game extends Component {
   }
 
   playOneFrame() {
+    this.emState.isPaused = true; // ensure we are paused
     this.cpuLoop();
   }
+
+  // togglePause() {
+  //   this.emState.isPaused = !this.emState.isPaused;
+  // }
 
   loadGame() {
     // for (var i = 0; i < 80; i++) {
@@ -214,8 +219,8 @@ class Game extends Component {
 
     // After you have initialized the emulator, load the program into the memory
     // (use fopen in binary mode) and start filling the memory at location: 0x200 == 512.
-    for (var i = 0; i < pong.length; ++i) {
-      this.memory[i + 512] = pong[i];
+    for (var i = 0; i < ufo.length; ++i) {
+      this.memory[i + 512] = ufo[i];
     }
 
     // this.props.setGlobalState({memory: this.memory});
@@ -226,10 +231,10 @@ class Game extends Component {
     var opcode =
       (this.memory[this.emState.pc] << 8) | this.memory[this.emState.pc + 1];
 
-    // this.props.setGlobalState({
-    //   lastPC: this.emState.pc,
-    //   lastOpcode: opcode.toString(16),
-    // });
+    this.props.setGlobalState({
+      lastPC: this.emState.pc,
+      lastOpcode: opcode.toString(16),
+    });
     execOpcode(opcode, this.emState, this.setState.bind(this), this.memory);
 
     // Update timers
@@ -269,6 +274,7 @@ class Game extends Component {
 
       // FIXME: try to skip every other one...
       window.requestAnimationFrame(() => {
+        // setTimeout(() => {
         this.setState({drawFlag: false}, () => {
           this.cpuLoop();
           drawAttemptCount = 0; // when we actually draw, reset to zero

@@ -54,7 +54,7 @@ var codes = {
     // this.i = opcode & 0xFFF; // this keeps the last 3 hex values
     state.pc += 2;
 
-    return 'LD I';
+    return 'LD I - Annn. The value of register I is set to nnn.';
   },
 
   0xb000: function(opcode, state, setState) {
@@ -136,7 +136,7 @@ var codes = {
     // console.log('nnn', nnn)
     state.pc = parseInt(nnn, 16);
 
-    return 'JP addr - Jump to location nnn.';
+    return '1nnn - JP addr - Jump to location nnn.';
   },
   0x2000: function(opcode, state, setState) {
     // CALL subroutine at nnn.
@@ -149,7 +149,7 @@ var codes = {
 
     state.pc = parseInt(hexCode.slice(1), 16); // FIXME: should this be base16? YES, because the source format is Base 16 (hex)
     //vs state.pc = opcode & 0x0FFF;
-    return 'CALL';
+    return '2nnn - CALL addr Call subroutine at nnn.';
   },
   0x3000: function(opcode, state, setState) {
     // 3xnn Skip next instruction if Vx = nn.
@@ -211,7 +211,7 @@ var codes = {
 
     state.pc += 2;
 
-    return 'LD Vx';
+    return '6xkk - LD Vx, byte Set Vx = kk. The interpreter puts the value kk into register Vx.';
   },
   0x7000: function(opcode, state, setState) {
     // 7XNN Set Vx = Vx + nn.
@@ -458,7 +458,7 @@ var codes = {
 
     state.pc += 2;
 
-    return 'DRW';
+    return 'Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.';
 
     var hexCode = opcode.toString(16); // convert opcode to hex value
     var x = parseInt(hexCode[1], 16); // a
