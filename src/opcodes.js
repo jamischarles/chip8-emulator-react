@@ -1,15 +1,7 @@
-// export execOpcode
-// pass in opcode and setState()
-// because that's really all this part has to do.
-// SUCH A NICE SEAM!!!
+// Some of this code < 10% was copied from https://github.com/alexanderdickson/Chip-8-Emulator where I couldn't figure out
+// the bugs (mostly with dx (draw) opcode.
 
-// togglePause()
-// resetScreen()
-// drawScreen()?
-// Q: Do we still need the draw flag? Because of how react works?
-// Let's keep it for now...
 
-// FIXME: change memory? Add it to state? Or change name to ROM?
 export function execOpcode(opcode, state, setState, memory) {
   // var hex = opcode.toString(16);
 
@@ -432,6 +424,7 @@ var codes = {
     // Dxyn - drawing graphic pixels. ie: 0xdab6
     // Every sprite will be 8 pixels wide, and N pixels tall...
     // debugger;
+    // stole this from https://github.com/alexanderdickson/Chip-8-Emulator because my version was too buggy
     state.V[0xf] = 0;
     var hexCode = opcode.toString(16); // convert opcode to hex value
     var x = parseInt(hexCode[1], 16); // a
