@@ -1,7 +1,6 @@
 ![](screenshots/chip-8-ufo.gif)
 
-This is an emulator for Chip-8 systems written in JS / React and runs in your browser. I wrote this for a talk at Framework summit (TODO add slides, youtube
-link). That means you can play pong, Space Invaders etc.
+This is an emulator for Chip-8 systems written in JS / React and runs in your browser. I wrote this for a talk at Framework summit https://www.youtube.com/watch?v=y837IMk251g. That means you can play pong, Space Invaders etc.
 
 Run in locally with
 `$ yarn start`
